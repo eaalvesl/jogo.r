@@ -93,7 +93,7 @@
     const oWinsEl    = document.getElementById('o-wins');
 
     let boardState    = Array(9).fill('');
-    let currentPlayer = 'X';
+    let currentPlayer = 'X'; // Começa com o jogador humano
     let gameActive    = true;
     let scores        = { X: 0, O: 0 };
 
@@ -119,7 +119,7 @@
     // Ao clicar numa célula
     function handleClick(e) {
       const idx = e.target.dataset.idx;
-      if (!gameActive || boardState[idx]) return;
+      if (!gameActive || boardState[idx] || currentPlayer === 'O') return;
 
       boardState[idx] = currentPlayer;
       renderBoard();
@@ -133,7 +133,8 @@
         alert('Empate!');
         gameActive = false;
       } else {
-        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        currentPlayer = 'O'; // Agora é a vez do bot
+        setTimeout(botMove, 500); // Delay para dar tempo de visualização da jogada
       }
     }
 
@@ -163,6 +164,26 @@
       renderBoard();
     }
 
+    // Movimento do bot
+    function botMove() {
+      const availableMoves = boardState.map((cell, idx) => cell === '' ? idx : null).filter(idx => idx !== null);
+      const randomMove = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+      boardState[randomMove] = 'O';
+      renderBoard();
+
+      if (checkWin()) {
+        alert('O bot venceu!');
+        scores.O++;
+        updateScoreboard();
+        gameActive = false;
+      } else if (boardState.every(v => v)) {
+        alert('Empate!');
+        gameActive = false;
+      } else {
+        currentPlayer = 'X'; // Volta a vez para o jogador humano
+      }
+    }
+
     resetBtn.addEventListener('click', resetGame);
 
     // Inicialização
@@ -170,5 +191,5 @@
     updateScoreboard();
   </script>
 
-</body>
+</body>  
 </html>
