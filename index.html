@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Jogo da Velha</title>
   <style>
     /* Layout básico */
@@ -71,6 +71,13 @@
     #reset:hover {
       background: #0056b3;
     }
+
+    #message {
+      margin-top: 20px;
+      font-size: 1.3rem;
+      color: #222;
+      min-height: 24px;
+    }
   </style>
 </head>
 <body>
@@ -78,6 +85,8 @@
   <h1>Jogo da Velha</h1>
 
   <div id="board"></div>
+
+  <div id="message"></div>
 
   <div id="scoreboard">
     <span>X venceu: <span id="x-wins">0</span> vezes</span> |
@@ -89,4 +98,92 @@
   <script>
     const boardEl    = document.getElementById('board');
     const resetBtn   = document.getElementById('reset');
-    c
+    const messageEl  = document.getElementById('message');
+    const xWinsEl    = document.getElementById('x-wins');
+    const oWinsEl    = document.getElementById('o-wins');
+
+    let board = ['', '', '', '', '', '', '', '', ''];
+    let currentPlayer = 'X';
+    let running = true;
+    let xWins = 0;
+    let oWins = 0;
+
+    const winConditions = [
+      [0,1,2],
+      [3,4,5],
+      [6,7,8],
+      [0,3,6],
+      [1,4,7],
+      [2,5,8],
+      [0,4,8],
+      [2,4,6]
+    ];
+
+    function createBoard() {
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.index = i;
+        cell.addEventListener('click', cellClicked);
+        boardEl.appendChild(cell);
+      }
+      messageEl.textContent = `É a vez do jogador ${currentPlayer}`;
+    }
+
+    function cellClicked(e) {
+      const index = e.target.dataset.index;
+      if (!running || board[index] !== '') return;
+
+      board[index] = currentPlayer;
+      e.target.textContent = currentPlayer;
+
+      if (checkWinner()) {
+        messageEl.textContent = `Jogador ${currentPlayer} venceu! 🎉`;
+        running = false;
+        updateScore(currentPlayer);
+        return;
+      }
+
+      if (board.every(cell => cell !== '')) {
+        messageEl.textContent = 'Empate!';
+        running = false;
+        return;
+      }
+
+      currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+      messageEl.textContent = `É a vez do jogador ${currentPlayer}`;
+    }
+
+    function checkWinner() {
+      return winConditions.some(condition => {
+        const [a, b, c] = condition;
+        return board[a] && board[a] === board[b] && board[b] === board[c];
+      });
+    }
+
+    function updateScore(player) {
+      if (player === 'X') {
+        xWins++;
+        xWinsEl.textContent = xWins;
+      } else {
+        oWins++;
+        oWinsEl.textContent = oWins;
+      }
+    }
+
+    function resetGame() {
+      board = ['', '', '', '', '', '', '', '', ''];
+      currentPlayer = 'X';
+      running = true;
+      createBoard();
+    }
+
+    resetBtn.addEventListener('click', resetGame);
+
+    // Inicializa o jogo na carga da página
+    createBoard();
+  </script>
+
+</body>
+</html>
