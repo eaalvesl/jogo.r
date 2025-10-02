@@ -1,189 +1,145 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Jogo da Velha</title>
   <style>
-    /* Layout básico */
     body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: #fafafa;
+      text-align: center;
+      background: #f0f0f0;
     }
-
     h1 {
-      margin: 40px 0 20px;
-      font-size: 2.5rem;
-      color: #333;
+      margin-top: 20px;
     }
-
-    /* Tabuleiro 3×3 */
-    #board {
+    #modeSelect {
+      margin-bottom: 20px;
+    }
+    .board {
       display: grid;
-      grid-template-columns: repeat(3, 120px);
-      grid-template-rows: repeat(3, 120px);
-      gap: 8px;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin: 0 auto;
     }
-
     .cell {
       background: #fff;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      font-size: 3rem;
-      color: #444;
+      border: 2px solid #444;
+      font-size: 2.5em;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      user-select: none;
-      transition: background 0.2s, transform 0.2s;
     }
-
-    .cell:hover {
-      background: #f0f0f0;
-      transform: scale(1.05);
+    .cell.disabled {
+      pointer-events: none;
     }
-
-    /* Placar e reiniciar */
-    #scoreboard {
-      margin-top: 30px;
-      text-align: center;
-      font-size: 1.2rem;
-    }
-
-    #reset {
-      margin-top: 15px;
-      padding: 10px 20px;
-      font-size: 1rem;
-      cursor: pointer;
-      border: none;
-      background: #007bff;
-      color: #fff;
-      border-radius: 5px;
-      transition: background 0.2s;
-    }
-
-    #reset:hover {
-      background: #0056b3;
-    }
-
-    #message {
+    #status {
       margin-top: 20px;
-      font-size: 1.3rem;
-      color: #222;
-      min-height: 24px;
+      font-size: 1.2em;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 10px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
-
   <h1>Jogo da Velha</h1>
 
-  <div id="board"></div>
-
-  <div id="message"></div>
-
-  <div id="scoreboard">
-    <span>X venceu: <span id="x-wins">0</span> vezes</span> |
-    <span>O venceu: <span id="o-wins">0</span> vezes</span>
+  <div id="modeSelect">
+    <button onclick="startGame('player')">2 Jogadores</button>
+    <button onclick="startGame('bot')">Contra o Robô</button>
   </div>
 
-  <button id="reset">Reiniciar Jogo</button>
+  <div class="board" id="board"></div>
+  <div id="status"></div>
 
   <script>
-    const boardEl    = document.getElementById('board');
-    const resetBtn   = document.getElementById('reset');
-    const messageEl  = document.getElementById('message');
-    const xWinsEl    = document.getElementById('x-wins');
-    const oWinsEl    = document.getElementById('o-wins');
-
-    let board = ['', '', '', '', '', '', '', '', ''];
+    const board = document.getElementById('board');
+    const status = document.getElementById('status');
     let currentPlayer = 'X';
-    let running = true;
-    let xWins = 0;
-    let oWins = 0;
+    let cells = [];
+    let gameOver = false;
+    let mode = 'player'; // 'player' or 'bot'
 
-    const winConditions = [
-      [0,1,2],
-      [3,4,5],
-      [6,7,8],
-      [0,3,6],
-      [1,4,7],
-      [2,5,8],
-      [0,4,8],
-      [2,4,6]
-    ];
+    function startGame(selectedMode) {
+      mode = selectedMode;
+      currentPlayer = 'X';
+      gameOver = false;
+      status.textContent = `Vez do jogador: ${currentPlayer}`;
+      board.innerHTML = '';
+      cells = [];
 
-    function createBoard() {
-      boardEl.innerHTML = '';
       for (let i = 0; i < 9; i++) {
         const cell = document.createElement('div');
         cell.classList.add('cell');
-        cell.dataset.index = i;
-        cell.addEventListener('click', cellClicked);
-        boardEl.appendChild(cell);
+        cell.addEventListener('click', () => handleMove(i));
+        board.appendChild(cell);
+        cells.push(cell);
       }
-      messageEl.textContent = `É a vez do jogador ${currentPlayer}`;
     }
 
-    function cellClicked(e) {
-      const index = e.target.dataset.index;
-      if (!running || board[index] !== '') return;
+    function handleMove(index) {
+      if (gameOver || cells[index].textContent !== '') return;
 
-      board[index] = currentPlayer;
-      e.target.textContent = currentPlayer;
+      cells[index].textContent = currentPlayer;
+      cells[index].classList.add('disabled');
 
-      if (checkWinner()) {
-        messageEl.textContent = `Jogador ${currentPlayer} venceu! 🎉`;
-        running = false;
-        updateScore(currentPlayer);
+      if (checkWin(currentPlayer)) {
+        status.textContent = `Jogador ${currentPlayer} venceu!`;
+        gameOver = true;
         return;
       }
 
-      if (board.every(cell => cell !== '')) {
-        messageEl.textContent = 'Empate!';
-        running = false;
+      if (isDraw()) {
+        status.textContent = 'Empate!';
+        gameOver = true;
         return;
       }
 
       currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
-      messageEl.textContent = `É a vez do jogador ${currentPlayer}`;
-    }
+      status.textContent = `Vez do jogador: ${currentPlayer}`;
 
-    function checkWinner() {
-      return winConditions.some(condition => {
-        const [a, b, c] = condition;
-        return board[a] && board[a] === board[b] && board[b] === board[c];
-      });
-    }
-
-    function updateScore(player) {
-      if (player === 'X') {
-        xWins++;
-        xWinsEl.textContent = xWins;
-      } else {
-        oWins++;
-        oWinsEl.textContent = oWins;
+      if (mode === 'bot' && currentPlayer === 'O' && !gameOver) {
+        setTimeout(botMove, 500); // pequeno delay para parecer mais humano
       }
     }
 
-    function resetGame() {
-      board = ['', '', '', '', '', '', '', '', ''];
-      currentPlayer = 'X';
-      running = true;
-      createBoard();
+    function botMove() {
+      const emptyIndexes = cells
+        .map((cell, i) => (cell.textContent === '' ? i : null))
+        .filter(i => i !== null);
+
+      if (emptyIndexes.length === 0 || gameOver) return;
+
+      const randomIndex = emptyIndexes[Math.floor(Math.random() * emptyIndexes.length)];
+      handleMove(randomIndex);
     }
 
-    resetBtn.addEventListener('click', resetGame);
+    function checkWin(player) {
+      const winPatterns = [
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        [0, 4, 8],
+        [2, 4, 6],
+      ];
 
-    // Inicializa o jogo na carga da página
-    createBoard();
+      return winPatterns.some(pattern => 
+        pattern.every(index => cells[index].textContent === player)
+      );
+    }
+
+    function isDraw() {
+      return cells.every(cell => cell.textContent !== '');
+    }
   </script>
-
 </body>
 </html>
